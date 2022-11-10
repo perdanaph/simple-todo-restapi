@@ -16,7 +16,18 @@ class TodoController extends Controller
      */
     public function index()
     {
-        //
+        $todos = Todo::all();
+        if($todos->count() <= 0) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Data Kosong'
+            ], 200);
+        }
+
+        return response()->json([
+            'status'=> true,
+            'data' => $todos
+        ], 200);
     }
 
     /**
@@ -43,10 +54,14 @@ class TodoController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|max:255|unique:todos',
             'description' => 'required'
+        ], [
+            'title.required' => 'Judul tidak boleh kosong',
+            'title.unique' => 'Judul sudah ada dalam database',
+            'description.required' => 'Deskripsi tidak boleh kosong'
         ]);
         // creating
         if($validator->fails()) {
-            $status = true;
+            $status = false;
             $message = $validator->errors();
             return response()->json([
                 'status' => $status,
@@ -57,7 +72,6 @@ class TodoController extends Controller
         $todo = new Todo();
         $todo->title = $request->title;
         $todo->description = $request->description;
-        $todo->is_done = $request->is_done;
         $todo->save();
 
         $status = true;
@@ -75,9 +89,20 @@ class TodoController extends Controller
      * @param  \App\Models\Todo  $todo
      * @return \Illuminate\Http\Response
      */
-    public function show(Todo $todo)
+    public function show($id)
     {
-        //
+        $todo = Todo::find($id);
+
+        if (!$todo) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Data tidak ada'
+            ], 404);
+        }
+        return response()->json([
+            'status' => true,
+            'data' => $todo
+        ], 200);
     }
 
     /**
@@ -86,9 +111,9 @@ class TodoController extends Controller
      * @param  \App\Models\Todo  $todo
      * @return \Illuminate\Http\Response
      */
-    public function edit(Todo $todo)
+    public function edit(Request $request, $id)
     {
-        //
+
     }
 
     /**
@@ -98,9 +123,37 @@ class TodoController extends Controller
      * @param  \App\Models\Todo  $todo
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Todo $todo)
+    public function update(Request $request, $id)
     {
-        //
+        $status = false;
+        $message = '';
+        $validator = Validator::make($request->all(), [
+            'title' => 'required',
+            'description' => 'required',
+            'is_done' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            $message = $validator->errors();
+            return response()->json([
+                'status'=> $status,
+                'message' => $message
+            ], 400);
+        }
+
+        $findTodo = Todo::find($id);
+        if (!$findTodo) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Data not found'
+            ], 404);
+        }
+        $findTodo -> update($request->all());
+        return response()->json([
+            'status'=> true,
+            'message' => 'Success',
+            'data' => $findTodo
+        ]);
     }
 
     /**
@@ -109,8 +162,20 @@ class TodoController extends Controller
      * @param  \App\Models\Todo  $todo
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Todo $todo)
+    public function destroy($id)
     {
-        //
+        $todo = Todo::find($id);
+        if (!$todo) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Data not found'
+            ], 404);
+        }
+
+        $todo->destroy($id);
+        return response()->json([
+            'status' => true,
+            'message' => 'Success Delete Todo'
+        ], 200);
     }
 }
